@@ -1,0 +1,55 @@
+.note-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 420px;
+  align-self: flex-start;
+  padding: 1.25rem;
+}
+
+.note-form h2 {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.note-form input,
+.note-form textarea {
+  width: 100%;
+  padding: 0.7rem 0.9rem;
+  font: inherit;
+  color: var(--text-color);
+  background: var(--input-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  outline: none;
+  resize: vertical;
+}
+
+.note-form input:focus,
+.note-form textarea:focus {
+  border-color: var(--primary);
+}
+
+.primary-btn {
+  padding: 0.7rem 1rem;
+  font: inherit;
+  font-weight: 600;
+  color: #ffffff;
+  background: var(--primary);
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.primary-btn:hover {
+  background: var(--primary-hover);
+}
+
+/* Tablet and phone: the form fills the width of its column. */
+@media (max-width: 1024px) {
+  .note-form {
+    max-width: none;
+  }
+}

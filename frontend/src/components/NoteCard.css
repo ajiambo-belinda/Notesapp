@@ -1,0 +1,109 @@
+.note-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1.1rem;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.note-card:hover {
+  background: var(--card-hover);
+  transform: translateY(-2px);
+}
+
+.note-card--trashed .note-card-title,
+.note-card--trashed .note-card-content {
+  opacity: 0.7;
+}
+
+.note-card-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.note-card-date {
+  font-size: 0.8rem;
+  opacity: 0.6;
+}
+
+.note-card-content {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.note-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.25rem;
+  margin-top: 0.25rem;
+}
+
+.icon-btn--fav {
+  opacity: 0.6;
+}
+
+.icon-btn--fav:hover {
+  opacity: 1;
+  background: rgba(245, 158, 11, 0.15);
+}
+
+.icon-btn--fav-active {
+  color: #f59e0b;
+  opacity: 1;
+}
+
+.icon-btn--edit {
+  color: var(--primary);
+}
+
+.icon-btn--edit:hover {
+  background: rgba(79, 70, 229, 0.12);
+}
+
+.icon-btn--delete {
+  color: var(--danger);
+}
+
+.icon-btn--delete:hover {
+  background: rgba(239, 68, 68, 0.15);
+}
+
+.icon-btn--restore {
+  color: var(--success);
+}
+
+.icon-btn--restore:hover {
+  background: rgba(16, 185, 129, 0.15);
+}
+
+.icon-btn--save {
+  color: var(--success);
+}
+
+.icon-btn--save:hover {
+  background: rgba(16, 185, 129, 0.15);
+}
+
+.icon-btn--cancel:hover {
+  background: rgba(128, 128, 128, 0.15);
+}
+
+.note-edit-field {
+  width: 100%;
+  padding: 0.6rem 0.8rem;
+  font: inherit;
+  color: var(--text-color);
+  background: var(--input-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  outline: none;
+  resize: vertical;
+}
+
+.note-edit-field:focus {
+  border-color: var(--primary);
+}
