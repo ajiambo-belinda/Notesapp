@@ -3,29 +3,38 @@ import type { FormEvent } from 'react'
 import './NoteForm.css'
 
 type NoteFormProps = {
-  onAdd: (title: string, content: string) => void
+  onAdd: (title: string, content: string) => Promise<boolean>
 }
 
 const NoteForm = ({ onAdd }: NoteFormProps) => {
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
+  const [saving, setSaving] = useState(false)
   const titleRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     titleRef.current?.focus()
   }, [])
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+
+    if (saving) return
 
     if (!title.trim()) {
       titleRef.current?.focus()
       return
     }
 
-    onAdd(title.trim(), content.trim())
-    setTitle('')
-    setContent('')
+    setSaving(true)
+    const added = await onAdd(title.trim(), content.trim())
+    setSaving(false)
+
+    if (added) {
+      setTitle('')
+      setContent('')
+    }
+
     titleRef.current?.focus()
   }
 
@@ -48,8 +57,8 @@ const NoteForm = ({ onAdd }: NoteFormProps) => {
         onChange={(e) => setContent(e.target.value)}
       />
 
-      <button type="submit" className="primary-btn">
-        Add note
+      <button type="submit" className="primary-btn" disabled={saving}>
+        {saving ? 'Adding...' : 'Add note'}
       </button>
     </form>
   )

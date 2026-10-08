@@ -2,12 +2,13 @@ import { useEffect, useState } from 'react'
 import NoteForm from './components/NoteForm'
 import NoteList from './components/NoteList'
 import Sidebar from './components/sidebar/Sidebar'
+import * as api from './api'
 import type { Note, Theme, View } from './types'
 
 const STORAGE_KEY = 'notes-app:notes'
 const THEME_KEY = 'notes-theme'
 
-const loadNotes = (): Note[] => {
+const loadCachedNotes = (): Note[] => {
   try {
     const saved = localStorage.getItem(STORAGE_KEY)
     if (!saved) return []
@@ -15,7 +16,6 @@ const loadNotes = (): Note[] => {
     const parsed: unknown = JSON.parse(saved)
     if (!Array.isArray(parsed)) return []
 
-    // Notes saved by earlier versions may be missing the newer fields.
     return parsed.map((note) => ({
       ...note,
       favourite: Boolean(note.favourite),
@@ -43,9 +43,41 @@ const emptyMessages: Record<View, string> = {
 }
 
 const App = () => {
-  const [notes, setNotes] = useState<Note[]>(loadNotes)
+  const [notes, setNotes] = useState<Note[]>(loadCachedNotes)
   const [theme, setTheme] = useState<Theme>(getInitialTheme)
   const [view, setView] = useState<View>('all')
+  const [offline, setOffline] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // Reload the list from the server, which is the source of truth.
+  const resync = async () => {
+    try {
+      setNotes(await api.fetchNotes())
+      setOffline(false)
+    } catch {
+      setOffline(true)
+    }
+  }
+
+  useEffect(() => {
+    let cancelled = false
+
+    api
+      .fetchNotes()
+      .then((serverNotes) => {
+        if (!cancelled) {
+          setNotes(serverNotes)
+          setOffline(false)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setOffline(true)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useEffect(() => {
     try {
@@ -64,28 +96,46 @@ const App = () => {
     }
   }, [theme])
 
+  useEffect(() => {
+    if (!error) return
+
+    const timer = setTimeout(() => setError(null), 4000)
+    return () => clearTimeout(timer)
+  }, [error])
+
   const toggleTheme = () => {
     setTheme((current) => (current === 'light' ? 'dark' : 'light'))
   }
 
-  const handleAdd = (title: string, content: string) => {
-    const newNote: Note = {
-      id: crypto.randomUUID(),
-      title,
-      content,
-      createdAt: new Date().toISOString(),
-      favourite: false,
-      deletedAt: null,
+  // Run a server call in the background. If it fails, show a message and
+  // reload the list so the screen matches what the server really has.
+  const syncWithServer = async (call: () => Promise<unknown>, message: string) => {
+    try {
+      await call()
+    } catch {
+      setError(message)
+      await resync()
     }
-    setNotes((prev) => [newNote, ...prev])
-    // Show the full list so the new note is visible whichever view you were in.
-    setView('all')
+  }
+
+  const handleAdd = async (title: string, content: string): Promise<boolean> => {
+    try {
+      const created = await api.createNote(title, content)
+      setNotes((prev) => [created, ...prev])
+      setOffline(false)
+      setView('all')
+      return true
+    } catch {
+      setError('Could not add the note. Is the server running?')
+      return false
+    }
   }
 
   const handleUpdate = (id: string, title: string, content: string) => {
     setNotes((prev) =>
       prev.map((note) => (note.id === id ? { ...note, title, content } : note)),
     )
+    void syncWithServer(() => api.updateNote(id, title, content), 'Could not save your changes.')
   }
 
   const handleToggleFavourite = (id: string) => {
@@ -94,6 +144,7 @@ const App = () => {
         note.id === id ? { ...note, favourite: !note.favourite } : note,
       ),
     )
+    void syncWithServer(() => api.toggleFavouriteNote(id), 'Could not update the favourite.')
   }
 
   const handleTrash = (id: string) => {
@@ -102,16 +153,19 @@ const App = () => {
         note.id === id ? { ...note, deletedAt: new Date().toISOString() } : note,
       ),
     )
+    void syncWithServer(() => api.trashNote(id), 'Could not move the note to trash.')
   }
 
   const handleRestore = (id: string) => {
     setNotes((prev) =>
       prev.map((note) => (note.id === id ? { ...note, deletedAt: null } : note)),
     )
+    void syncWithServer(() => api.restoreNote(id), 'Could not restore the note.')
   }
 
   const handleDeleteForever = (id: string) => {
     setNotes((prev) => prev.filter((note) => note.id !== id))
+    void syncWithServer(() => api.deleteNoteForever(id), 'Could not delete the note.')
   }
 
   const activeNotes = notes.filter((note) => note.deletedAt === null)
@@ -148,13 +202,20 @@ const App = () => {
       <NoteForm onAdd={handleAdd} />
       <NoteList
         notes={visibleNotes}
-        emptyMessage={emptyMessages[view]}
+        emptyMessage={
+          offline ? 'Server unreachable. Start the backend and reload.' : emptyMessages[view]
+        }
         onTrash={handleTrash}
         onRestore={handleRestore}
         onDeleteForever={handleDeleteForever}
         onUpdate={handleUpdate}
         onToggleFavourite={handleToggleFavourite}
       />
+      {error && (
+        <div className="toast" role="alert">
+          {error}
+        </div>
+      )}
     </div>
   )
 }
